@@ -1,6 +1,4 @@
-use std::io::Lines;
-
-use crate::utils;
+use crate::utils::{self};
 
 pub enum NtwkErrCode {
     Okay,
@@ -24,19 +22,19 @@ impl Ntwk {
         let lines = match utils::read_lines(filename.to_string()) {
             Ok(l) => l,
             Err(e) => {
-                println!("{0}", e);
+                eprintln!("{0}", e);
                 file_parse_status = NtwkErrCode::BadFile;
                 return Err(file_parse_status);
             }
         };
         for line in lines {
-            let s = match line {
-                Ok(l) => l,
-                Err(_) => "".to_owned()
-            };
+            let s = line.unwrap_or("".to_string());
+            let (truncated, str) = utils::strip_comment(s);
+            if truncated { continue };
 
+            println!("{}", str);
+            
         }
-        
 
         match file_parse_status {
             NtwkErrCode::Okay => Ok(ntwk),
@@ -48,7 +46,10 @@ impl Ntwk {
 }
 
 enum NtwkParseState {
-    
+    NewNode,
+    GetConnections,
+    EndNode,
+    EndNet
 }
 struct NtwkNode {
     id: u32,

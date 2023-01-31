@@ -1,7 +1,7 @@
 use crate::ntwk::Ntwk;
 
 mod ntwk;
-pub mod utils;
+mod utils;
 
 fn main() {
     let exit_code = start();
@@ -18,18 +18,18 @@ fn start() -> i32 {
             return guwah::ErrCode::Okay as i32;
         },
         Err(err) => {
-            println!("parse error");
+            eprintln!("parse error");
             return err as i32;
         },
     };
 
-    dbg!(&rns_settings);
+    //dbg!(&rns_settings);
 
     // Open ntwk file and parse according to settings
     let _ntwk = match Ntwk::from_file(rns_settings.ntwk_file()) {
         Ok(n) => n,
         Err(err) => {
-            println!("ntwk parse error");
+            eprintln!("ntwk parse error");
             return err as i32;
         }
     };

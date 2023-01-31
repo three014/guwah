@@ -7,3 +7,13 @@ pub fn read_lines(filename: String) -> Result<io::Lines<BufReader<File>>, String
         Err(e) => Err(e.to_string())
     }
 }
+
+pub fn strip_comment(line: String) -> (bool, String) {
+    let comment = line.find('#');
+    match comment {
+        Some(loc) => {
+            (true, line.split_at(loc).0.to_string())
+        },
+        None => (false, line)
+    }
+}
