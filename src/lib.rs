@@ -8,14 +8,14 @@ pub enum ErrCode {
     SimFileParseFailed
 }
 
-#[derive(Debug)]
+#[derive(Debug)] // TODO: Remove derive
 pub struct Settings {
     ntwk_filename: String,
     sim_filename: String
 }
 
 impl Settings {
-    pub fn from_args(args: Vec<String>) -> Result<Settings, ErrCode> {
+    pub fn from_args(args: std::env::Args) -> Result<Settings, ErrCode> {
         const DEFAULT_NTWK_FILE: &str = "config/basic.ntwk";
         const DEFAULT_SIM_FILE: &str = "config/basic.sim";
         let mut s = Settings {
@@ -26,7 +26,7 @@ impl Settings {
         let mut cmd_parse_status = ErrCode::Okay;
         let mut ntwk_flag = false;
         let mut sim_flag = false;
-        for arg in args.iter().skip(1) {
+        for arg in args.skip(1) {
             match arg.as_str() {
                 "-h" => {
                     if ntwk_flag || sim_flag {

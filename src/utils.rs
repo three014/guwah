@@ -8,12 +8,12 @@ pub fn read_lines(filename: String) -> Result<io::Lines<BufReader<File>>, String
     }
 }
 
-pub fn strip_comment(line: String) -> (bool, String) {
+pub fn strip_comment(line: String) -> String {
     let comment = line.find('#');
     match comment {
         Some(loc) => {
-            (true, line.split_at(loc).0.to_string())
+            line.split_at(loc).0.to_string()
         },
-        None => (false, line)
+        None => line
     }
 }

@@ -1,21 +1,22 @@
+use guwah::{ErrCode, Settings};
 use crate::ntwk::Ntwk;
 
 mod ntwk;
 mod utils;
 
 fn main() {
-    let exit_code = start();
+    let exit_code = run();
     std::process::exit(exit_code);
 }
 
-fn start() -> i32 {
+fn run() -> i32 {
     // Get cmd args -> global settings
-    let args: Vec<String> = std::env::args().collect();
-    let rns_settings = match guwah::Settings::from_args(args) {
+    let args = std::env::args();
+    let rns_settings = match Settings::from_args(args) {
         Ok(settings) => settings,
-        Err(guwah::ErrCode::ShowHelpSign) => {
+        Err(ErrCode::ShowHelpSign) => {
             println!("help board");
-            return guwah::ErrCode::Okay as i32;
+            return ErrCode::Okay as i32;
         },
         Err(err) => {
             eprintln!("parse error");
@@ -26,7 +27,7 @@ fn start() -> i32 {
     //dbg!(&rns_settings);
 
     // Open ntwk file and parse according to settings
-    let _ntwk = match Ntwk::from_file(rns_settings.ntwk_file()) {
+    let ntwk = match Ntwk::from_file(rns_settings.ntwk_file()) {
         Ok(n) => n,
         Err(err) => {
             eprintln!("ntwk parse error");
@@ -34,6 +35,8 @@ fn start() -> i32 {
         }
     };
 
+    dbg!(&ntwk);
+
     // Open sim file and parse according to settings
-    guwah::ErrCode::Okay as i32
+    ErrCode::Okay as i32
 }
