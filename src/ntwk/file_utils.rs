@@ -20,7 +20,7 @@ pub enum NtwkParseState {
 }
 
 impl NtwkParseState {
-    pub fn parse_new_node(ntwk: &mut super::Ntwk, str: &String) -> (NtwkErrCode, NtwkParseState) {
+    pub fn parse_new_node(ntwk: &mut Ntwk, str: &String) -> (NtwkErrCode, NtwkParseState) {
         use NtwkParseState::GetConnections as get_conns; // Because I'm lazy and didn't want to retype 30 chars
         let mut err = NtwkErrCode::Okay;
         
@@ -50,7 +50,7 @@ impl NtwkParseState {
         (err, get_conns)
     }
 
-    pub fn parse_conn_list(ntwk: &mut super::Ntwk, str: &String) -> (NtwkErrCode, NtwkParseState) {
+    pub fn parse_conn_list(ntwk: &mut Ntwk, str: &String) -> (NtwkErrCode, NtwkParseState) {
         let mut next_state = NtwkParseState::GetConnections;
         let mut err = NtwkErrCode::Okay;
 
@@ -83,7 +83,7 @@ impl NtwkParseState {
         }
     }
 
-    pub fn handle_end_net(ntwk: &mut super::Ntwk, str: &String) -> (NtwkErrCode, NtwkParseState) {
+    pub fn handle_end_net(ntwk: &mut Ntwk, str: &String) -> (NtwkErrCode, NtwkParseState) {
         const END_NET_TOKEN: &str = "endNet";
         if str == END_NET_TOKEN {
             (NtwkErrCode::Okay, NtwkParseState::StopParse)

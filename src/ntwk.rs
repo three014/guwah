@@ -20,7 +20,7 @@ impl Ntwk {
             node_list: Vec::with_capacity(10)
         };
 
-        let lines = match utils::read_lines(filename.to_string()) {
+        let lines = match utils::read_lines(filename) {
             Ok(l) => l,
             Err(e) => {
                 eprintln!("{0}", e);
