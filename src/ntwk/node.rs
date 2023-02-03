@@ -1,5 +1,7 @@
 use super::file_utils::NtwkErrCode;
 
+const MAX_CONN_COUNT: usize = 20;
+
 #[derive(Debug)]
 pub struct NtwkNode {
     id: u32,
@@ -14,7 +16,7 @@ impl NtwkNode {
 
         let n = NtwkNode {
             id,
-            conn_count: conn_count.try_into().unwrap_or(10),
+            conn_count: conn_count.try_into().unwrap_or(MAX_CONN_COUNT),
             conn_list: Vec::with_capacity(conn_count.try_into().unwrap_or_default()),
             queue_delay
         };

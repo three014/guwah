@@ -5,6 +5,8 @@ use self::{file_utils::{NtwkParseState, NtwkErrCode}, node::NtwkNode};
 mod file_utils;
 mod node; 
 
+const DEFAULT_NUM_NODES: usize = 20;
+
 #[derive(Debug)]
 pub struct Ntwk {
     node_list: Vec<Rc<RefCell<NtwkNode>>>
@@ -17,13 +19,13 @@ impl Ntwk {
         let mut state = NtwkParseState::NewNode;
 
         let mut ntwk = Ntwk {
-            node_list: Vec::with_capacity(10)
+            node_list: Vec::with_capacity(DEFAULT_NUM_NODES)
         };
 
         let lines = match utils::read_lines(filename) {
             Ok(l) => l,
             Err(e) => {
-                eprintln!("{0}", e);
+                eprintln!("{e}");
                 status = NtwkErrCode::BadFile;
                 return Err(status);
             }
@@ -38,7 +40,7 @@ impl Ntwk {
             let s = utils::strip_comment(s);
             if s.is_empty() { continue };
 
-            println!("{}", &s);
+            //println!("{}", &s);
             
             (status, state) = match state {
                 NtwkParseState::NewNode => NtwkParseState::parse_new_node(&mut ntwk, &s),

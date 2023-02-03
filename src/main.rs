@@ -1,7 +1,9 @@
 use guwah::{ErrCode, Settings};
 use crate::ntwk::Ntwk;
+use crate::sim::Sim;
 
 mod ntwk;
+mod sim;
 mod utils;
 
 fn main() {
@@ -18,9 +20,9 @@ fn run() -> i32 {
             println!("help board");
             return ErrCode::Okay as i32;
         },
-        Err(err) => {
+        Err(e) => {
             eprintln!("parse error");
-            return err as i32;
+            return e as i32;
         },
     };
 
@@ -29,14 +31,24 @@ fn run() -> i32 {
     // Open ntwk file and parse according to settings
     let ntwk = match Ntwk::from_file(rns_settings.ntwk_file()) {
         Ok(n) => n,
-        Err(err) => {
+        Err(e) => {
             eprintln!("ntwk parse error");
-            return err as i32;
+            return e as i32;
         }
     };
 
     dbg!(&ntwk);
 
     // Open sim file and parse according to settings
+    let sims = match Sim::from_file(rns_settings.sim_file()) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("sim parse error");
+            return e as i32;
+        }
+    };
+
+    dbg!(&sims);
+
     ErrCode::Okay as i32
 }
