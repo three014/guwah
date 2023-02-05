@@ -53,6 +53,13 @@ impl Sim {
             sims.insert(instr, &mut prev_timestamp, &mut curr_idx);
         }
 
+        { // Take care of last item
+            let x = sims.instr_set.last();
+            let y = x.unwrap();
+            let mut z = y.borrow_mut();
+            z.shrink_to_fit();
+        }
+
         match status {
             SimErrCode::Okay => Ok(sims),
             _ => Err(status)
@@ -95,7 +102,7 @@ fn insert_helper(sims: &mut Sim, curr_idx: u32, instr: Instr) {
 }
 
 impl<'a> IntoIterator for &'a Sim {
-    type Item = &'a Rc<RefCell<Vec<Instr>>>;
+    type Item = &'a RefCell<Vec<Instr>>;
 
     type IntoIter = SimIntoIterator<'a>;
 
@@ -113,7 +120,7 @@ pub struct SimIntoIterator<'a> {
 }
 
 impl<'a> Iterator for SimIntoIterator<'a> {
-    type Item = &'a Rc<RefCell<Vec<Instr>>>;
+    type Item = &'a RefCell<Vec<Instr>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = match self.sim.instr_set.get(self.index) {

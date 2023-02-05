@@ -37,7 +37,7 @@ fn run() -> i32 {
         }
     };
 
-    dbg!(&ntwk);
+    //dbg!(&ntwk);
 
     // Open sim file and parse according to settings
     let sims = match Sim::from_file(rns_settings.sim_file()) {
@@ -48,7 +48,7 @@ fn run() -> i32 {
         }
     };
 
-    dbg!(&sims);
+    //dbg!(&sims);
 
     ErrCode::Okay as i32
 }
