@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::cell::RefCell;
 
 use crate::utils;
 
@@ -11,7 +11,7 @@ const DEFAULT_NUM_INSTRS: usize = 10;
 
 #[derive(Debug)]
 pub struct Sim {
-    instr_set: Vec<Rc<RefCell<Vec<Instr>>>>,
+    instr_set: Vec<RefCell<Vec<Instr>>>,
 }
 
 impl Sim {
@@ -94,7 +94,7 @@ fn insert_helper(sims: &mut Sim, curr_idx: u32, instr: Instr) {
             v.borrow_mut().push(instr);
         },
         None => {
-            sims.instr_set.push(Rc::new(RefCell::new(Vec::new())));
+            sims.instr_set.push(RefCell::new(Vec::new()));
             let nv = sims.instr_set.get(curr_idx as usize).unwrap();
             nv.borrow_mut().push(instr);
         }

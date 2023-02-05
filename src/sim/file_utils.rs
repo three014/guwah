@@ -33,7 +33,7 @@ pub fn parse_instr(str: &String) -> Result<Instr, SimErrCode> {
         }
     }
 
-    let instr: Option<Instr>;
+    let instr: Instr;
 
     if time.is_none() { return Err(SimErrCode::NoTimestamp) };
 
@@ -42,28 +42,24 @@ pub fn parse_instr(str: &String) -> Result<Instr, SimErrCode> {
             "msg" => match id {
                 Some(i) => match start_node {
                     Some(sn) => match end_node {
-                        Some(en) => instr = Some(Instr::Msg(MsgInstr::new(time.unwrap(), 
+                        Some(en) => instr = Instr::Msg(MsgInstr::new(time.unwrap(), 
                                                                                i, 
                                                                                sn, 
-                                                                               en))),
+                                                                               en)),
                         None => return Err(SimErrCode::NoEndNode)
                     },
                     None => return Err(SimErrCode::NoStartNode)
                 },
                 None => return Err(SimErrCode::NoId)
             },
-            "rep" => instr = Some(Instr::Rep(RepInstr::new(time.unwrap(), id))),
-            "endSim" => instr = Some(Instr::EndSim(time.unwrap())),
+            "rep" => instr = Instr::Rep(RepInstr::new(time.unwrap(), id)),
+            "endSim" => instr = Instr::EndSim(time.unwrap()),
             _ => return Err(SimErrCode::UnknownInstrKind),
         },
         None => return Err(SimErrCode::BadLine)
     };
 
-    match instr {
-        Some(i) => Ok(i),
-        None => Err(SimErrCode::UnknownErr)
-    }
-
+    Ok(instr)
 }
 
 

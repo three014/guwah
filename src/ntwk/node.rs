@@ -14,10 +14,11 @@ impl NtwkNode {
     pub fn new(id: u32, conn_count: u32, queue_delay: u32) -> Result<NtwkNode, NtwkErrCode> {
         let mut create_node_status = NtwkErrCode::Okay;
 
+        let cc = conn_count.try_into().unwrap_or(MAX_CONN_COUNT);
         let n = NtwkNode {
             id,
-            conn_count: conn_count.try_into().unwrap_or(MAX_CONN_COUNT),
-            conn_list: Vec::with_capacity(conn_count.try_into().unwrap_or_default()),
+            conn_count: cc,
+            conn_list: Vec::with_capacity(cc),
             queue_delay
         };
         if conn_count == 0 {
