@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::utils;
 
 use self::{instr::Instr, file_utils::SimErrCode};
@@ -9,7 +11,7 @@ const DEFAULT_NUM_INSTRS: usize = 10;
 
 #[derive(Debug)]
 pub struct Sim {
-    instr_set: Vec<Instr>,
+    instr_set: Vec<Rc<RefCell<Vec<Instr>>>>,
 }
 
 impl Sim {
@@ -26,9 +28,11 @@ impl Sim {
         };
 
         let mut sims = Sim {
-            instr_set: Vec::with_capacity(DEFAULT_NUM_INSTRS)
+            instr_set: Vec::with_capacity(DEFAULT_NUM_INSTRS),
         };
 
+        let mut prev_timestamp: u32 = 0;
+        let mut curr_idx: u32 = 0;
         for line in lines {
             if status != SimErrCode::Okay {
                 break;
@@ -39,15 +43,14 @@ impl Sim {
             if s.is_empty() { continue };
 
             // parse line and turn into sim instruction, then add to sim list
-            println!("{}", &s);
+            //println!("{}", &s);
 
             let instr = match file_utils::parse_instr(&s) {
                 Ok(i) => i,
                 Err(_) => continue
             };
 
-            sims.instr_set.push(instr);
-            
+            sims.insert(instr, &mut prev_timestamp, &mut curr_idx);
         }
 
         match status {
@@ -55,4 +58,101 @@ impl Sim {
             _ => Err(status)
         }
     }
+
+    fn insert(&mut self, instr: Instr, prev_timestamp: &mut u32, curr_idx: &mut u32) {
+        if instr.timestamp() == *prev_timestamp {
+            insert_helper(self, *curr_idx, instr);
+        }
+        else {
+            *prev_timestamp = instr.timestamp();
+            let v = self.instr_set.get(*curr_idx as usize);
+            match v {
+                Some(r) => {
+                    let vec_len = r.borrow().len();
+                    let mut vec = r.borrow_mut();
+                    vec.shrink_to(vec_len);
+                    *curr_idx += 1;
+                },
+                None => ()
+            }
+            insert_helper(self, *curr_idx, instr);
+        }
+    }
 }
+
+fn insert_helper(sims: &mut Sim, curr_idx: u32, instr: Instr) {
+    let result = sims.instr_set.get(curr_idx as usize);
+    match result {
+        Some(v) => {
+            v.borrow_mut().push(instr);
+        },
+        None => {
+            sims.instr_set.push(Rc::new(RefCell::new(Vec::new())));
+            let nv = sims.instr_set.get(curr_idx as usize).unwrap();
+            nv.borrow_mut().push(instr);
+        }
+    }
+}
+
+impl<'a> IntoIterator for &'a Sim {
+    type Item = &'a Rc<RefCell<Vec<Instr>>>;
+
+    type IntoIter = SimIntoIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        SimIntoIterator {
+            sim: self,
+            index: 0,
+        }
+    }   
+}
+
+pub struct SimIntoIterator<'a> {
+    sim: &'a Sim,
+    index: usize,
+}
+
+impl<'a> Iterator for SimIntoIterator<'a> {
+    type Item = &'a Rc<RefCell<Vec<Instr>>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let result = match self.sim.instr_set.get(self.index) {
+            Some(rc) => rc,
+            None => return None,
+        };
+        self.index += 1;
+        Some(result)
+    }
+}
+
+// impl IntoIterator for Sim {
+//     type Item = Rc<RefCell<Vec<Instr>>>;
+//     type IntoIter = SimIntoIterator;
+
+//     fn into_iter(self) -> Self::IntoIter {
+//         SimIntoIterator {
+//             sim: self,
+//             index: 0
+//         }
+//     }
+// }
+
+// pub struct SimIntoIterator {
+//     sim: Sim,
+//     index: usize,
+// }
+
+// impl Iterator for SimIntoIterator {
+//     type Item = Rc<RefCell<Vec<Instr>>>;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         let result = match self.sim.instr_set.get(self.index) {
+//             Some(rc) => {
+//                 Rc::clone(rc)
+//             },
+//             None => return None,
+//         };
+//         self.index += 1;
+//         Some(result)
+//     }
+// }

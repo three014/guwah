@@ -1,4 +1,4 @@
-use super::{Sim, instr::{Instr, MsgInstr, RepInstr}};
+use super::instr::{Instr, MsgInstr, RepInstr};
 
 #[derive(PartialEq)]
 pub enum SimErrCode {
@@ -13,8 +13,6 @@ pub enum SimErrCode {
     BadLine,
     UnknownErr,
 }
-
-const NUM_TOKENS: usize = 5;
 
 pub fn parse_instr(str: &String) -> Result<Instr, SimErrCode> {
     let mut time: Option<u32> = None;
@@ -35,9 +33,9 @@ pub fn parse_instr(str: &String) -> Result<Instr, SimErrCode> {
         }
     }
 
-    let mut instr: Option<Instr> = None;
+    let instr: Option<Instr>;
 
-    if time == None { return Err(SimErrCode::NoTimestamp) };
+    if time.is_none() { return Err(SimErrCode::NoTimestamp) };
 
     match kind {
         Some(s) => match s.as_str() {
