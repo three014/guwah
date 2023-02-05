@@ -11,6 +11,7 @@ pub enum SimErrCode {
     NoEndNode,
     BadFile,
     BadLine,
+    EmptyContents,
 }
 
 pub fn parse_instr(str: &String) -> Result<Instr, SimErrCode> {
@@ -37,14 +38,14 @@ pub fn parse_instr(str: &String) -> Result<Instr, SimErrCode> {
     if time.is_none() { return Err(SimErrCode::NoTimestamp) };
 
     match kind {
-        Some(s) => match s.as_str() {
+        Some(str_match) => match str_match.as_str() {
             "msg" => match id {
-                Some(i) => match start_node {
-                    Some(sn) => match end_node {
-                        Some(en) => instr = Instr::Msg(MsgInstr::new(time.unwrap(), 
-                                                                               i, 
-                                                                               sn, 
-                                                                               en)),
+                Some(msg_id_match) => match start_node {
+                    Some(start_node_match) => match end_node {
+                        Some(end_node_match) => instr = Instr::Msg(MsgInstr::new(time.unwrap(), 
+                                                                               msg_id_match, 
+                                                                               start_node_match, 
+                                                                               end_node_match)),
                         None => return Err(SimErrCode::NoEndNode)
                     },
                     None => return Err(SimErrCode::NoStartNode)

@@ -59,13 +59,17 @@ impl Sim {
             sims.insert(instr, &mut prev_timestamp, &mut curr_idx);
         }
 
-        { // Take care of last item
-            let x = sims.instr_set.last();
-            let y = x.unwrap();
-            let mut z = y.0.borrow_mut();
-            z.shrink_to_fit();
-            if !z.last().unwrap().is_endsim() { status = SimErrCode::MismatchEndSimToken };
+        // Ensure that last item in list is an endSim instruction
+        let item: Option<&InstrSetSet> = sims.instr_set.last();
+        match item {
+            Some(instr_set_set) => {
+                let mut vec_ref = instr_set_set.0.borrow_mut();
+                vec_ref.shrink_to_fit();
+                if !vec_ref.last().unwrap().is_endsim() { status = SimErrCode::MismatchEndSimToken };
+            },
+            None => status = SimErrCode::EmptyContents
         }
+        
 
         match status {
             SimErrCode::Okay => Ok(sims),
@@ -79,15 +83,12 @@ impl Sim {
         }
         else {
             *prev_timestamp = instr.timestamp();
-            let v = self.instr_set.get(*curr_idx as usize);
-            match v {
-                Some(r) => {
-                    let vec_len = r.0.borrow().len();
-                    let mut vec = r.0.borrow_mut();
-                    vec.shrink_to(vec_len);
-                    *curr_idx += 1;
-                },
-                None => ()
+            if (*curr_idx as usize) < self.instr_set.len() {
+                let iss: &InstrSetSet = self.instr_set.get(*curr_idx as usize).unwrap();
+                let vec_len = iss.0.borrow().len();
+                let mut vec_ref = iss.0.borrow_mut();
+                vec_ref.shrink_to(vec_len);
+                *curr_idx += 1;
             }
             insert_helper(self, *curr_idx, instr);
         }
@@ -97,13 +98,13 @@ impl Sim {
 fn insert_helper(sims: &mut Sim, curr_idx: u32, instr: Instr) {
     let result = sims.instr_set.get(curr_idx as usize);
     match result {
-        Some(v) => {
-            v.0.borrow_mut().push(instr);
+        Some(instr_set_set) => {
+            instr_set_set.0.borrow_mut().push(instr);
         },
         None => {
-            sims.instr_set.push(InstrSetSet::new());
-            let nv = sims.instr_set.get(curr_idx as usize).unwrap();
-            nv.0.borrow_mut().push(instr);
+            let new_instr_set_set = InstrSetSet::new();
+            new_instr_set_set.0.borrow_mut().push(instr);
+            sims.instr_set.push(new_instr_set_set);
         }
     }
 }
