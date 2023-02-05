@@ -13,10 +13,13 @@ pub struct RepInstr {
 }
 
 #[derive(Debug)]
+pub struct EndInstr(u32);
+
+#[derive(Debug)]
 pub enum Instr {
     Msg(MsgInstr),
     Rep(RepInstr),
-    EndSim(u32)
+    EndSim(EndInstr)
 }
 
 impl Instr {
@@ -24,7 +27,15 @@ impl Instr {
         match self {
             Instr::Msg(m) => m.timestamp(),
             Instr::Rep(r) => r.timestamp(),
-            Instr::EndSim(u) => u.clone()
+            Instr::EndSim(e) => e.timestamp(),
+        }
+    }
+
+    pub fn is_endsim(&self) -> bool {
+        match self {
+            Instr::Msg(m) => m.is_endsim(),
+            Instr::Rep(r) => r.is_endsim(),
+            Instr::EndSim(e) => e.is_endsim(),
         }
     }
 }
@@ -34,6 +45,7 @@ impl MsgInstr {
         MsgInstr { timestamp, msg_id, start_node, end_node }
     }
     fn timestamp(&self) -> u32 { self.timestamp }
+    fn is_endsim(&self) -> bool { false }
 }
 
 impl RepInstr {
@@ -41,4 +53,13 @@ impl RepInstr {
         RepInstr { timestamp, msg_id }
     }
     fn timestamp(&self) -> u32 { self.timestamp }
+    fn is_endsim(&self) -> bool { false }
+}
+
+impl EndInstr {
+    pub fn new(timestamp: u32) -> EndInstr {
+        EndInstr(timestamp)
+    }
+    fn timestamp(&self) -> u32 { self.0 }
+    fn is_endsim(&self) -> bool { true }
 }

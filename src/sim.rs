@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, ops::Deref};
 
 use crate::utils;
 
@@ -10,8 +10,17 @@ mod instr;
 const DEFAULT_NUM_INSTRS: usize = 10;
 
 #[derive(Debug)]
+pub struct InstrSetSet(RefCell<Vec<Instr>>);
+
+impl InstrSetSet {
+    const fn new() -> InstrSetSet {
+        InstrSetSet(RefCell::new(Vec::new()))
+    }
+}
+
+#[derive(Debug)]
 pub struct Sim {
-    instr_set: Vec<RefCell<Vec<Instr>>>,
+    instr_set: Vec<InstrSetSet>,
 }
 
 impl Sim {
@@ -34,9 +43,6 @@ impl Sim {
         let mut prev_timestamp: u32 = 0;
         let mut curr_idx: u32 = 0;
         for line in lines {
-            if status != SimErrCode::Okay {
-                break;
-            }
 
             let s = line.unwrap_or("".to_string());
             let s = utils::strip_comment(s);
@@ -56,8 +62,9 @@ impl Sim {
         { // Take care of last item
             let x = sims.instr_set.last();
             let y = x.unwrap();
-            let mut z = y.borrow_mut();
+            let mut z = y.0.borrow_mut();
             z.shrink_to_fit();
+            if !z.last().unwrap().is_endsim() { status = SimErrCode::MismatchEndSimToken };
         }
 
         match status {
@@ -75,8 +82,8 @@ impl Sim {
             let v = self.instr_set.get(*curr_idx as usize);
             match v {
                 Some(r) => {
-                    let vec_len = r.borrow().len();
-                    let mut vec = r.borrow_mut();
+                    let vec_len = r.0.borrow().len();
+                    let mut vec = r.0.borrow_mut();
                     vec.shrink_to(vec_len);
                     *curr_idx += 1;
                 },
@@ -91,72 +98,48 @@ fn insert_helper(sims: &mut Sim, curr_idx: u32, instr: Instr) {
     let result = sims.instr_set.get(curr_idx as usize);
     match result {
         Some(v) => {
-            v.borrow_mut().push(instr);
+            v.0.borrow_mut().push(instr);
         },
         None => {
-            sims.instr_set.push(RefCell::new(Vec::new()));
+            sims.instr_set.push(InstrSetSet::new());
             let nv = sims.instr_set.get(curr_idx as usize).unwrap();
-            nv.borrow_mut().push(instr);
+            nv.0.borrow_mut().push(instr);
         }
     }
 }
 
-impl<'a> IntoIterator for &'a Sim {
-    type Item = &'a RefCell<Vec<Instr>>;
+impl Deref for Sim {
+    type Target = [InstrSetSet];
 
-    type IntoIter = SimIntoIterator<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        SimIntoIterator {
-            sim: self,
-            index: 0,
-        }
-    }   
-}
-
-pub struct SimIntoIterator<'a> {
-    sim: &'a Sim,
-    index: usize,
-}
-
-impl<'a> Iterator for SimIntoIterator<'a> {
-    type Item = &'a RefCell<Vec<Instr>>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let result = match self.sim.instr_set.get(self.index) {
-            Some(rc) => rc,
-            None => return None,
-        };
-        self.index += 1;
-        Some(result)
+    fn deref<'a>(&'a self) -> &'a Self::Target {
+        &self.instr_set
     }
 }
 
-// impl IntoIterator for Sim {
-//     type Item = Rc<RefCell<Vec<Instr>>>;
-//     type IntoIter = SimIntoIterator;
+// impl<'a> IntoIterator for &'a Sim {
+//     type Item = &'a InstrSetSet;
+
+//     type IntoIter = SimIntoIterator<'a>;
 
 //     fn into_iter(self) -> Self::IntoIter {
 //         SimIntoIterator {
 //             sim: self,
-//             index: 0
+//             index: 0,
 //         }
-//     }
+//     }   
 // }
 
-// pub struct SimIntoIterator {
-//     sim: Sim,
+// pub struct SimIntoIterator<'a> {
+//     sim: &'a Sim,
 //     index: usize,
 // }
 
-// impl Iterator for SimIntoIterator {
-//     type Item = Rc<RefCell<Vec<Instr>>>;
+// impl<'a> Iterator for SimIntoIterator<'a> {
+//     type Item = &'a InstrSetSet;
 
 //     fn next(&mut self) -> Option<Self::Item> {
 //         let result = match self.sim.instr_set.get(self.index) {
-//             Some(rc) => {
-//                 Rc::clone(rc)
-//             },
+//             Some(rc) => rc,
 //             None => return None,
 //         };
 //         self.index += 1;

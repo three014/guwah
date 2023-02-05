@@ -1,4 +1,4 @@
-use super::instr::{Instr, MsgInstr, RepInstr};
+use super::instr::{Instr, MsgInstr, RepInstr, EndInstr};
 
 #[derive(PartialEq)]
 pub enum SimErrCode {
@@ -11,7 +11,6 @@ pub enum SimErrCode {
     NoEndNode,
     BadFile,
     BadLine,
-    UnknownErr,
 }
 
 pub fn parse_instr(str: &String) -> Result<Instr, SimErrCode> {
@@ -53,7 +52,7 @@ pub fn parse_instr(str: &String) -> Result<Instr, SimErrCode> {
                 None => return Err(SimErrCode::NoId)
             },
             "rep" => instr = Instr::Rep(RepInstr::new(time.unwrap(), id)),
-            "endSim" => instr = Instr::EndSim(time.unwrap()),
+            "endSim" => instr = Instr::EndSim(EndInstr::new(time.unwrap())),
             _ => return Err(SimErrCode::UnknownInstrKind),
         },
         None => return Err(SimErrCode::BadLine)
