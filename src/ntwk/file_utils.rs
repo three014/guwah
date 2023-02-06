@@ -48,16 +48,13 @@ impl NtwkParseState {
 
         let mut temp_id: u32 = 0;
         let result = sscanf!(str, "{}", temp_id);
-        match result {
-            Ok(_) => {
-                node_ref.borrow_mut().push(temp_id);
-                if node_ref.borrow().conn_len() >= node_ref.borrow().conn_count() {
-                    next_state = NtwkParseState::EndNode;
-                }
-            },
-            Err(e) => {
-                eprintln!("{e}");
-                err = NtwkErrCode::BadLine;
+        if let Err(e) = result {
+            eprintln!("{e}");
+            err = NtwkErrCode::BadLine;
+        } else {
+            node_ref.borrow_mut().push(temp_id);
+            if node_ref.borrow().conn_len() >= node_ref.borrow().conn_count() {
+                next_state = NtwkParseState::EndNode;
             }
         }
         (err, next_state)
