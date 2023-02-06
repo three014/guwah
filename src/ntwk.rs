@@ -23,7 +23,7 @@ impl Ntwk {
         };
 
         let lines = match utils::read_lines(filename) {
-            Ok(l) => l,
+            Ok(lines) => lines,
             Err(e) => {
                 eprintln!("{e}");
                 status = NtwkErrCode::BadFile;

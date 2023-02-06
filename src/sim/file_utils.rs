@@ -37,26 +37,30 @@ pub fn parse_instr(str: &String) -> Result<Instr, SimErrCode> {
 
     if time.is_none() { return Err(SimErrCode::NoTimestamp) };
 
-    match kind {
-        Some(str_match) => match str_match.as_str() {
-            "msg" => match id {
-                Some(msg_id_match) => match start_node {
-                    Some(start_node_match) => match end_node {
-                        Some(end_node_match) => instr = Instr::Msg(MsgInstr::new(time.unwrap(), 
-                                                                               msg_id_match, 
-                                                                               start_node_match, 
-                                                                               end_node_match)),
-                        None => return Err(SimErrCode::NoEndNode)
-                    },
-                    None => return Err(SimErrCode::NoStartNode)
-                },
-                None => return Err(SimErrCode::NoId)
+    if let Some(str_match) = kind {
+        match str_match.as_str() {
+            "msg" => if let Some(msg_id_match) = id {
+                if let Some(start_node_match) = start_node {
+                    if let Some(end_node_match) = end_node {
+                        instr = Instr::Msg(MsgInstr::new(time.unwrap(), 
+                                                        msg_id_match, 
+                                                        start_node_match, 
+                                                        end_node_match))
+                    } else {
+                        return Err(SimErrCode::NoEndNode)
+                    }
+                } else {
+                    return Err(SimErrCode::NoStartNode)
+                }
+            } else {
+                return Err(SimErrCode::NoId)
             },
             "rep" => instr = Instr::Rep(RepInstr::new(time.unwrap(), id)),
             "endSim" => instr = Instr::EndSim(EndInstr::new(time.unwrap())),
             _ => return Err(SimErrCode::UnknownInstrKind),
-        },
-        None => return Err(SimErrCode::BadLine)
+        }
+    } else {
+        return Err(SimErrCode::BadLine)
     };
 
     Ok(instr)

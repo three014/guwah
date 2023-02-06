@@ -48,12 +48,14 @@ fn run() -> i32 {
         }
     };
 
-    for (timestep, instr_set_set) in sims.into_timeline().enumerate() {
-        if let Some(instr_set) = instr_set_set {
+    let start: u32 = 0;
+    (start..).zip(sims.into_timeline()).for_each(|(timestep, maybe_instr_set)| {
+        if let Some(instr_set) = maybe_instr_set {
             for instr in instr_set.iter() {
-            }
+                assert!(instr.timestamp() == timestep);
+            }   
         }
-    }
+    });
 
 
     ErrCode::Okay as i32
