@@ -1,4 +1,4 @@
-use std::{cell::RefCell, ops::Deref};
+use std::cell::RefCell;
 
 use crate::utils;
 
@@ -21,6 +21,7 @@ impl InstrSetSet {
 #[derive(Debug)]
 pub struct Sim {
     instr_set: Vec<InstrSetSet>,
+    end_time: u32,
 }
 
 impl Sim {
@@ -38,6 +39,7 @@ impl Sim {
 
         let mut sims = Sim {
             instr_set: Vec::with_capacity(DEFAULT_NUM_INSTRS),
+            end_time: 0,
         };
 
         let mut prev_timestamp: u32 = 0;
@@ -66,6 +68,7 @@ impl Sim {
                 let mut vec_ref = instr_set_set.0.borrow_mut();
                 vec_ref.shrink_to_fit();
                 if !vec_ref.last().unwrap().is_endsim() { status = SimErrCode::MismatchEndSimToken };
+                sims.end_time = vec_ref.last().unwrap().timestamp();
             },
             None => status = SimErrCode::EmptyContents
         }
@@ -109,41 +112,51 @@ fn insert_helper(sims: &mut Sim, curr_idx: u32, instr: Instr) {
     }
 }
 
-impl Deref for Sim {
-    type Target = [InstrSetSet];
+// impl Deref for Sim {
+//     type Target = [InstrSetSet];
 
-    fn deref<'a>(&'a self) -> &'a Self::Target {
-        &self.instr_set
-    }
-}
-
-// impl<'a> IntoIterator for &'a Sim {
-//     type Item = &'a InstrSetSet;
-
-//     type IntoIter = SimIntoIterator<'a>;
-
-//     fn into_iter(self) -> Self::IntoIter {
-//         SimIntoIterator {
-//             sim: self,
-//             index: 0,
-//         }
-//     }   
-// }
-
-// pub struct SimIntoIterator<'a> {
-//     sim: &'a Sim,
-//     index: usize,
-// }
-
-// impl<'a> Iterator for SimIntoIterator<'a> {
-//     type Item = &'a InstrSetSet;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         let result = match self.sim.instr_set.get(self.index) {
-//             Some(rc) => rc,
-//             None => return None,
-//         };
-//         self.index += 1;
-//         Some(result)
+//     fn deref<'a>(&'a self) -> &'a Self::Target {
+//         &self.instr_set
 //     }
 // }
+
+impl<'a> IntoIterator for &'a Sim {
+    type Item = Option<&'a InstrSetSet>;
+    type IntoIter = SimIntoIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        SimIntoIterator {
+            sim: self,
+            index: 0,
+        }
+    }
+}
+ 
+
+pub struct SimIntoIterator<'a> {
+    sim: &'a Sim,
+    index: usize,
+}
+
+impl<'a> Iterator for SimIntoIterator<'a> {
+    type Item = Option<&'a InstrSetSet>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let result = match self.sim.instr_set.get(self.index) {
+            Some(rc) => rc,
+            None => return None,
+        };
+
+        let ret: Self::Item;
+        let curr_timestamp = result.0.borrow()[0].timestamp();
+        if (curr_timestamp as usize) == self.index {
+            ret = Some(result);
+            self.index += 1;
+        }
+        else {
+            ret = None;
+        }
+        
+        Some(ret)
+    }
+}

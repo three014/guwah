@@ -48,7 +48,7 @@ fn run() -> i32 {
         }
     };
 
-    //dbg!(&sims);
+    //dbg!(sims);
 
     ErrCode::Okay as i32
 }
