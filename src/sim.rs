@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-
 use crate::utils;
 
 use self::{file_utils::SimErrCode, instr::Instr};
@@ -10,11 +8,45 @@ mod instr;
 const DEFAULT_NUM_INSTRS: usize = 10;
 
 #[derive(Debug)]
-pub struct InstrSetSet(RefCell<Vec<Instr>>);
+pub struct InstrSetSet(Vec<Instr>);
 
 impl InstrSetSet {
-    const fn new() -> InstrSetSet {
-        InstrSetSet(RefCell::new(Vec::new()))
+    fn new() -> InstrSetSet {
+        InstrSetSet(Vec::new())
+    }
+
+    pub const fn iter<'a>(&'a self) -> InstrAsIter<'a> {
+        InstrAsIter { instr_set: self, index: 0 }
+    }
+
+    fn push(&mut self, instr: Instr) {
+        self.0.push(instr)
+    }
+
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    fn as_mut_vec(&mut self) -> &mut Vec<Instr> {
+        &mut self.0
+    }
+}
+
+pub struct InstrAsIter<'a> {
+    instr_set: &'a InstrSetSet,
+    index: usize,
+}
+
+impl<'a> Iterator for InstrAsIter<'a> {
+    type Item = &'a Instr;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let vec_ref = &self.instr_set.0;
+        if let Some(result) = vec_ref.get(self.index) {
+            self.index += 1;
+            Some(result)
+        }
+        else { None }
     }
 }
 
@@ -49,9 +81,6 @@ impl Sim {
                 continue;
             };
 
-            // parse line and turn into sim instruction, then add to sim list
-            //println!("{}", &s);
-
             let instr = match file_utils::parse_instr(&s) {
                 Ok(i) => i,
                 Err(_) => continue,
@@ -61,12 +90,14 @@ impl Sim {
         }
 
         // Ensure that last item in list is an endSim instruction
-        let item: Option<&InstrSetSet> = sims.instr_set.last();
+        let item: Option<&mut InstrSetSet> = sims.instr_set.last_mut();
         match item {
             Some(instr_set_set) => {
-                let mut vec_ref = instr_set_set.0.borrow_mut();
+                let vec_ref = instr_set_set.as_mut_vec();
                 vec_ref.shrink_to_fit();
-                if !vec_ref.last().unwrap().is_endsim() {
+                // Should be okay to unwrap here
+                // Vec couldn't be created unless there was an item to push to it
+                if !vec_ref.last().unwrap().is_endsim() { 
                     status = SimErrCode::MismatchEndSimToken
                 };
             }
@@ -85,9 +116,9 @@ impl Sim {
         } else {
             *prev_timestamp = instr.timestamp();
             if (*curr_idx as usize) < self.instr_set.len() {
-                let iss: &InstrSetSet = self.instr_set.get(*curr_idx as usize).unwrap();
-                let vec_len = iss.0.borrow().len();
-                let mut vec_ref = iss.0.borrow_mut();
+                let iss: &mut InstrSetSet = self.instr_set.get_mut(*curr_idx as usize).unwrap();
+                let vec_len = iss.len();
+                let vec_ref = iss.as_mut_vec();
                 vec_ref.shrink_to(vec_len);
                 *curr_idx += 1;
             }
@@ -101,51 +132,46 @@ impl Sim {
     /// If there are no instruction sets at the current time/index,
     /// the iterator returns an empty `Option`. Otherwise, the iterator
     /// returns a reference to the instruction set.
-    pub fn into_timeline<'a>(&'a self) -> SimIntoTimeline<'a> {
+    /// 
+    /// # Examples
+    /// 
+    /// ``` 
+    /// let sims = Sim::from_file("sample.sim");
+    /// for (timestep, instr_set_set) in sims.into_timeline().enumerate() {
+    ///     if let Some(instr_set) = instr_set_set {
+    ///         for instr in instr_set.iter() {
+    ///             assert!((instr.timestamp() as usize) == timestep);
+    ///         }   
+    ///     }
+    /// }
+    /// ```
+    pub const fn into_timeline<'a>(&'a self) -> SimIntoTimeline<'a> {
         SimIntoTimeline {
             sim: self,
             index: 0,
+            time: 0,
         }
     }
 }
 
 fn insert_helper(sims: &mut Sim, curr_idx: u32, instr: Instr) {
-    let result = sims.instr_set.get(curr_idx as usize);
+    let result = sims.instr_set.get_mut(curr_idx as usize);
     match result {
         Some(instr_set_set) => {
-            instr_set_set.0.borrow_mut().push(instr);
+            instr_set_set.push(instr);
         }
         None => {
-            let new_instr_set_set = InstrSetSet::new();
-            new_instr_set_set.0.borrow_mut().push(instr);
+            let mut new_instr_set_set = InstrSetSet::new();
+            new_instr_set_set.push(instr);
             sims.instr_set.push(new_instr_set_set);
         }
     }
 }
 
-// impl Deref for Sim {
-//     type Target = [InstrSetSet];
-
-//     fn deref<'a>(&'a self) -> &'a Self::Target {
-//         &self.instr_set
-//     }
-// }
-
-// impl<'a> IntoIterator for &'a Sim {
-//     type Item = Option<&'a InstrSetSet>;
-//     type IntoIter = SimIntoTimeline<'a>;
-
-//     fn into_iter(self) -> Self::IntoIter {
-//         SimIntoTimeline {
-//             sim: self,
-//             index: 0,
-//         }
-//     }
-// }
-
 pub struct SimIntoTimeline<'a> {
     sim: &'a Sim,
     index: usize,
+    time: u32
 }
 
 impl<'a> Iterator for SimIntoTimeline<'a> {
@@ -158,13 +184,14 @@ impl<'a> Iterator for SimIntoTimeline<'a> {
         };
 
         let ret: Self::Item;
-        let curr_timestamp = result.0.borrow()[0].timestamp();
-        if (curr_timestamp as usize) == self.index {
+        let curr_timestamp = result.0[0].timestamp();
+        if curr_timestamp == self.time {
             ret = Some(result);
             self.index += 1;
         } else {
             ret = None;
         }
+        self.time += 1;
 
         Some(ret)
     }

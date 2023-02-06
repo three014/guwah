@@ -48,7 +48,13 @@ fn run() -> i32 {
         }
     };
 
-    dbg!(sims);
+    for (timestep, instr_set_set) in sims.into_timeline().enumerate() {
+        if let Some(instr_set) = instr_set_set {
+            for instr in instr_set.iter() {
+            }
+        }
+    }
+
 
     ErrCode::Okay as i32
 }
