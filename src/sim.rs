@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use crate::utils;
 
-use self::{instr::Instr, file_utils::SimErrCode};
+use self::{file_utils::SimErrCode, instr::Instr};
 
 mod file_utils;
 mod instr;
@@ -21,7 +21,6 @@ impl InstrSetSet {
 #[derive(Debug)]
 pub struct Sim {
     instr_set: Vec<InstrSetSet>,
-    end_time: u32,
 }
 
 impl Sim {
@@ -39,23 +38,23 @@ impl Sim {
 
         let mut sims = Sim {
             instr_set: Vec::with_capacity(DEFAULT_NUM_INSTRS),
-            end_time: 0,
         };
 
         let mut prev_timestamp: u32 = 0;
         let mut curr_idx: u32 = 0;
         for line in lines {
-
             let s = line.unwrap_or("".to_string());
             let s = utils::strip_comment(s);
-            if s.is_empty() { continue };
+            if s.is_empty() {
+                continue;
+            };
 
             // parse line and turn into sim instruction, then add to sim list
             //println!("{}", &s);
 
             let instr = match file_utils::parse_instr(&s) {
                 Ok(i) => i,
-                Err(_) => continue
+                Err(_) => continue,
             };
 
             sims.insert(instr, &mut prev_timestamp, &mut curr_idx);
@@ -67,24 +66,23 @@ impl Sim {
             Some(instr_set_set) => {
                 let mut vec_ref = instr_set_set.0.borrow_mut();
                 vec_ref.shrink_to_fit();
-                if !vec_ref.last().unwrap().is_endsim() { status = SimErrCode::MismatchEndSimToken };
-                sims.end_time = vec_ref.last().unwrap().timestamp();
-            },
-            None => status = SimErrCode::EmptyContents
+                if !vec_ref.last().unwrap().is_endsim() {
+                    status = SimErrCode::MismatchEndSimToken
+                };
+            }
+            None => status = SimErrCode::EmptyContents,
         }
-        
 
         match status {
             SimErrCode::Okay => Ok(sims),
-            _ => Err(status)
+            _ => Err(status),
         }
     }
 
     fn insert(&mut self, instr: Instr, prev_timestamp: &mut u32, curr_idx: &mut u32) {
         if instr.timestamp() == *prev_timestamp {
             insert_helper(self, *curr_idx, instr);
-        }
-        else {
+        } else {
             *prev_timestamp = instr.timestamp();
             if (*curr_idx as usize) < self.instr_set.len() {
                 let iss: &InstrSetSet = self.instr_set.get(*curr_idx as usize).unwrap();
@@ -96,6 +94,19 @@ impl Sim {
             insert_helper(self, *curr_idx, instr);
         }
     }
+
+    /// Returns an iterator over the simulation timeline.
+    /// 
+    /// The iterator's interal index mimics that of a clock.
+    /// If there are no instruction sets at the current time/index,
+    /// the iterator returns an empty `Option`. Otherwise, the iterator
+    /// returns a reference to the instruction set.
+    pub fn into_timeline<'a>(&'a self) -> SimIntoTimeline<'a> {
+        SimIntoTimeline {
+            sim: self,
+            index: 0,
+        }
+    }
 }
 
 fn insert_helper(sims: &mut Sim, curr_idx: u32, instr: Instr) {
@@ -103,7 +114,7 @@ fn insert_helper(sims: &mut Sim, curr_idx: u32, instr: Instr) {
     match result {
         Some(instr_set_set) => {
             instr_set_set.0.borrow_mut().push(instr);
-        },
+        }
         None => {
             let new_instr_set_set = InstrSetSet::new();
             new_instr_set_set.0.borrow_mut().push(instr);
@@ -120,25 +131,24 @@ fn insert_helper(sims: &mut Sim, curr_idx: u32, instr: Instr) {
 //     }
 // }
 
-impl<'a> IntoIterator for &'a Sim {
-    type Item = Option<&'a InstrSetSet>;
-    type IntoIter = SimIntoIterator<'a>;
+// impl<'a> IntoIterator for &'a Sim {
+//     type Item = Option<&'a InstrSetSet>;
+//     type IntoIter = SimIntoTimeline<'a>;
 
-    fn into_iter(self) -> Self::IntoIter {
-        SimIntoIterator {
-            sim: self,
-            index: 0,
-        }
-    }
-}
- 
+//     fn into_iter(self) -> Self::IntoIter {
+//         SimIntoTimeline {
+//             sim: self,
+//             index: 0,
+//         }
+//     }
+// }
 
-pub struct SimIntoIterator<'a> {
+pub struct SimIntoTimeline<'a> {
     sim: &'a Sim,
     index: usize,
 }
 
-impl<'a> Iterator for SimIntoIterator<'a> {
+impl<'a> Iterator for SimIntoTimeline<'a> {
     type Item = Option<&'a InstrSetSet>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -152,11 +162,10 @@ impl<'a> Iterator for SimIntoIterator<'a> {
         if (curr_timestamp as usize) == self.index {
             ret = Some(result);
             self.index += 1;
-        }
-        else {
+        } else {
             ret = None;
         }
-        
+
         Some(ret)
     }
 }
