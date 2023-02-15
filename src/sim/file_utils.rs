@@ -43,9 +43,9 @@ pub fn parse_instr(str: &String) -> Result<Instr, SimErrCode> {
                 if let Some(start_node_match) = start_node {
                     if let Some(end_node_match) = end_node {
                         instr = Instr::Msg(MsgInstr::new(time.unwrap(), 
-                                                        msg_id_match, 
-                                                        start_node_match, 
-                                                        end_node_match))
+                                                         msg_id_match, 
+                                                         start_node_match, 
+                                                         end_node_match))
                     } else {
                         return Err(SimErrCode::NoEndNode)
                     }

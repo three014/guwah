@@ -11,7 +11,7 @@ const DEFAULT_NUM_INSTRS: usize = 10;
 pub struct InstrSet(Vec<Instr>);
 
 impl InstrSet {
-    fn new() -> InstrSet {
+    const fn new() -> InstrSet {
         InstrSet(Vec::new())
     }
 

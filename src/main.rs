@@ -1,6 +1,10 @@
-use guwah::{ErrCode, Settings};
+use std::iter::Zip;
+use std::ops::RangeFrom;
+
 use crate::ntwk::Ntwk;
 use crate::sim::Sim;
+use guwah::{ErrCode, Settings};
+use sim::SimIntoTimeline;
 
 mod ntwk;
 mod sim;
@@ -19,11 +23,11 @@ fn run() -> i32 {
         Err(ErrCode::ShowHelpSign) => {
             println!("help board");
             return ErrCode::Okay as i32;
-        },
+        }
         Err(e) => {
             eprintln!("parse error");
             return e as i32;
-        },
+        }
     };
 
     //dbg!(&rns_settings);
@@ -48,15 +52,21 @@ fn run() -> i32 {
         }
     };
 
-    let start: u32 = 0;
-    (start..).zip(sims.into_timeline()).for_each(|(timestep, maybe_instr_set)| {
+    timeline(0, &sims).for_each(|(timestep, maybe_instr_set)| {
         if let Some(instr_set) = maybe_instr_set {
             for instr in instr_set.iter() {
                 assert!(instr.timestamp() == timestep);
-            }   
+
+                // Add instructions to avl tree for fast search,
+                // and to vec stack for in-order reports
+            }
         }
     });
 
-
     ErrCode::Okay as i32
 }
+
+fn timeline(start_time: u32, sims: &Sim) -> Zip<RangeFrom<u32>, SimIntoTimeline<'_>> {
+    (start_time..).zip(sims.into_timeline())
+}
+

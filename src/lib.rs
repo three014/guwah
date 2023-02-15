@@ -8,7 +8,7 @@ pub enum ErrCode {
     SimFileParseFailed
 }
 
-#[derive(Debug)] // TODO: Remove derive
+#[derive(Debug)]
 pub struct Settings {
     ntwk_filename: String,
     sim_filename: String
