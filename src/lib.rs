@@ -1,3 +1,5 @@
+mod timeline;
+
 pub enum ErrCode {
     Okay,
     ShowHelpSign,
@@ -5,22 +7,22 @@ pub enum ErrCode {
     UnknownSwitch,
     SwitchHasNoArg,
     NtwkFileParseFailed,
-    SimFileParseFailed
+    SimFileParseFailed,
 }
 
 #[derive(Debug)]
-pub struct Settings {
-    ntwk_filename: String,
-    sim_filename: String
+pub struct RnsSettings {
+    pub ntwk_filename: String,
+    pub sim_filename: String,
 }
 
-impl Settings {
-    pub fn from_args(args: std::env::Args) -> Result<Settings, ErrCode> {
+impl RnsSettings {
+    pub fn from_args(args: std::env::Args) -> Result<RnsSettings, ErrCode> {
         const DEFAULT_NTWK_FILE: &str = "config/basic.ntwk";
         const DEFAULT_SIM_FILE: &str = "config/basic.sim";
-        let mut s = Settings {
+        let mut s = RnsSettings {
             ntwk_filename: String::from(DEFAULT_NTWK_FILE),
-            sim_filename: String::from(DEFAULT_SIM_FILE)
+            sim_filename: String::from(DEFAULT_SIM_FILE),
         };
 
         let mut cmd_parse_status = ErrCode::Okay;
@@ -31,19 +33,18 @@ impl Settings {
                 "-h" => {
                     if ntwk_flag || sim_flag {
                         cmd_parse_status = ErrCode::SwitchHasNoArg;
-                    }
-                    else {
+                    } else {
                         cmd_parse_status = ErrCode::ShowHelpSign;
                     }
                     break;
-                },
+                }
                 "-n" => {
                     if ntwk_flag || sim_flag {
                         cmd_parse_status = ErrCode::SwitchHasNoArg;
                         break;
                     }
                     ntwk_flag = true;
-                },
+                }
                 "-s" => {
                     if sim_flag || ntwk_flag {
                         cmd_parse_status = ErrCode::SwitchHasNoArg;
@@ -59,12 +60,10 @@ impl Settings {
                     if sim_flag && !ntwk_flag {
                         s.sim_filename = arg.to_string();
                         sim_flag = false;
-                    }
-                    else if ntwk_flag && !sim_flag {
+                    } else if ntwk_flag && !sim_flag {
                         s.ntwk_filename = arg.to_string();
                         ntwk_flag = false;
-                    }
-                    else {
+                    } else {
                         cmd_parse_status = ErrCode::NoSwitchSpecified;
                         break;
                     }
@@ -78,15 +77,7 @@ impl Settings {
 
         match cmd_parse_status {
             ErrCode::Okay => Ok(s),
-            _ => Err(cmd_parse_status)
+            _ => Err(cmd_parse_status),
         }
-    }
-
-    pub fn ntwk_file(&self) -> &String {
-        &self.ntwk_filename
-    }
-
-    pub fn sim_file(&self) -> &String {
-        &self.sim_filename
     }
 }

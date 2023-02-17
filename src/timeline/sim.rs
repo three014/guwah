@@ -1,9 +1,8 @@
-use crate::utils;
-
 use self::{file_utils::SimErrCode, instr::Instr};
+use crate::timeline::utils;
 
 mod file_utils;
-mod instr;
+pub(crate) mod instr;
 
 const DEFAULT_NUM_INSTRS: usize = 10;
 
@@ -16,7 +15,10 @@ impl InstrSet {
     }
 
     pub const fn iter<'a>(&'a self) -> InstrAsIter<'a> {
-        InstrAsIter { instr_set: self, index: 0 }
+        InstrAsIter {
+            instr_set: self,
+            index: 0,
+        }
     }
 
     fn push(&mut self, instr: Instr) {
@@ -45,8 +47,9 @@ impl<'a> Iterator for InstrAsIter<'a> {
         if let Some(result) = vec_ref.get(self.index) {
             self.index += 1;
             Some(result)
+        } else {
+            None
         }
-        else { None }
     }
 }
 
@@ -59,7 +62,7 @@ impl Sim {
     pub fn from_file(filename: &String) -> Result<Sim, SimErrCode> {
         let mut status = SimErrCode::Okay;
 
-        let lines = match utils::read_lines(filename) {
+        let lines = match utils::internal_utils::read_lines(filename) {
             Ok(lines) => lines,
             Err(e) => {
                 eprintln!("{e}");
@@ -76,7 +79,7 @@ impl Sim {
         let mut curr_idx: u32 = 0;
         for line in lines {
             let s = line.unwrap_or("".to_string());
-            let s = utils::strip_comment(s);
+            let s = utils::internal_utils::strip_comment(s);
             if s.is_empty() {
                 continue;
             };
@@ -96,7 +99,7 @@ impl Sim {
             vec_ref.shrink_to_fit();
             // Should be okay to unwrap here
             // Vec couldn't be created unless there was an item to push to it
-            if !vec_ref.last().unwrap().is_endsim() { 
+            if !vec_ref.last().unwrap().is_endsim() {
                 status = SimErrCode::MismatchEndSimToken
             };
         } else {
@@ -113,7 +116,7 @@ impl Sim {
         if instr.timestamp() != *prev_timestamp {
             *prev_timestamp = instr.timestamp();
             if (*curr_idx as usize) < self.instr_set_set.len() {
-                // Should be okay to unwrap, since all previous array entries 
+                // Should be okay to unwrap, since all previous array entries
                 // had to be initialized before insertion
                 let iss: &mut InstrSet = self.instr_set_set.get_mut(*curr_idx as usize).unwrap();
                 let vec_len = iss.len();
@@ -127,16 +130,16 @@ impl Sim {
     }
 
     /// Returns an iterator over the simulation timeline.
-    /// 
+    ///
     /// The iterator's interal index mimics that of a clock.
     /// If there are no instruction sets at the current time/index,
     /// the iterator returns an empty `Option`. Otherwise, the iterator
     /// returns a reference to the instruction set.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// Example using `enumerate`
-    /// ``` 
+    /// ```
     /// let sims = Sim::from_file("sample.sim");
     /// for (timestep, instr_set) in sims.into_timeline().enumerate() {
     ///     if let Some(instr_set) = instr_set {
@@ -146,7 +149,7 @@ impl Sim {
     ///     }
     /// }
     /// ```
-    /// 
+    ///
     /// Example using `Iterator::for_each` and `zip` to compare timestamp with `u32` values
     /// ```
     /// let sims = Sim::from_file("sample.sim");
@@ -169,8 +172,8 @@ impl Sim {
 }
 
 /// Appends a new instruction onto the current instruction set.
-/// 
-/// If the current instruction set is not initialized, the helper creates 
+///
+/// If the current instruction set is not initialized, the helper creates
 /// a new instruction set, appends the new instruction to that set,
 /// then appends that set to the Sim.
 fn insert_helper(sims: &mut Sim, curr_idx: u32, instr: Instr) {
@@ -187,7 +190,7 @@ fn insert_helper(sims: &mut Sim, curr_idx: u32, instr: Instr) {
 pub struct SimIntoTimeline<'a> {
     sim: &'a Sim,
     index: usize,
-    time: u32
+    time: u32,
 }
 
 impl<'a> Iterator for SimIntoTimeline<'a> {
